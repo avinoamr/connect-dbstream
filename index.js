@@ -24,7 +24,7 @@ module.exports = function ( connection ) {
     }
 }
 
-function search = function ( connection, req, res ) {
+function search ( connection, req, res ) {
     var acc = [];
     new connection.Cursor()
         .find( req.query )
@@ -37,7 +37,7 @@ function search = function ( connection, req, res ) {
         });
 };
 
-function read = function ( connection, req, res ) {
+function read ( connection, req, res ) {
     var found = false;
     new connection.Cursor()
         .find({ id: req.params.id })
@@ -54,13 +54,13 @@ function read = function ( connection, req, res ) {
         });
 };
 
-function create = function ( connection, req, res ) {
+function create ( connection, req, res ) {
     var cursor = new connection.Cursor();
     cursor.write( req.body );
     cursor
         .on( "error", on_error( res ) )
         .on( "finish", function() {
-            res.send( data );
+            res.send( req.body );
         });
         .end();
 };
@@ -82,7 +82,7 @@ function remove ( conection, req, res ) {
         .end();
 }
 
-function on_error = function( res ) {
+function on_error ( res ) {
     return function ( err ) {
         console.error( err );
         res.writeHead( 500, "Internal Server Error" );
