@@ -61,7 +61,7 @@ function create ( connection, req, res ) {
         .on( "error", on_error( res ) )
         .on( "finish", function() {
             res.send( req.body );
-        });
+        })
         .end();
 };
 
