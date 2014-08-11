@@ -1,5 +1,4 @@
 var url = require( "url" );
-var connect = require( "connect" );
 module.exports = function ( connection ) {
     return function ( req, res, next ) {
         var purl = url.parse( req.url, true );
@@ -90,6 +89,3 @@ function on_error ( res ) {
     }
 }
 
-// connect()
-//     .use( "/hello", module.exports() )
-//     .listen( 8000 );
