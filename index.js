@@ -70,7 +70,7 @@ function update ( connection, req, res ) {
     create( connection, req, res );
 };
 
-function remove ( conection, req, res ) {
+function remove ( connection, req, res ) {
     var cursor = new connection.Cursor();
     cursor.remove({ id: req.params.id });
     cursor
