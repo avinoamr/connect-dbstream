@@ -26,8 +26,8 @@ module.exports = function ( connection ) {
     }
 
     mw.conn = connection;
-    events.EventsEmitter.call( mw );
-    mw.__proto__ = Object.create( events.EventsEmitter.prototype );
+    events.EventEmitter.call( mw );
+    mw.__proto__ = Object.create( events.EventEmitter.prototype );
     return mw;
 }
 
