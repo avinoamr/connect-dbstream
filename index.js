@@ -1,6 +1,9 @@
+var events = require( "events" );
 var url = require( "url" );
 module.exports = function ( connection ) {
-    return function ( req, res, next ) {
+    var mw = new events.EventEmitter();
+    mw.conn = connection;
+    mw.handle = function ( req, res, next ) {
         var purl = url.parse( req.url, true );
         req.params || ( req.params = {} );
         req.query || ( req.query = purl.query );
@@ -14,36 +17,45 @@ module.exports = function ( connection ) {
             ( req.params.id && req.method == "DELETE" )      ? remove : null;
 
         if ( !action ) {
-            res.writeHead( 400, "Bad Request" );
+            res.error = "Bad Request";
+            mw.emit( "error", req, res );
+            res.writeHead( 400, res.error );
             res.end();
             return
         }
 
-        action( connection, req, res );
+        action( mw, req, res );
     }
+    return mw;
 }
 
-function search ( connection, req, res ) {
+function search ( mw, req, res ) {
     var acc = [];
-    new connection.Cursor()
+    mw.emit( "search:before", req, res );
+    new mw.conn.Cursor()
         .find( req.query )
-        .on( "error", on_error( res ) )
+        .on( "error", on_error( mw, req, res ) )
         .on( "data" , function ( obj ) {
-            acc.push( obj ) 
+            acc.push( obj );
         })
         .on( "end", function() {
-            res.end( JSON.stringify( acc ) );
+            res.data = acc;
+            mw.emit( "search:after", req, res );
+            res.end( JSON.stringify( res.data ) );
         });
 };
 
-function read ( connection, req, res ) {
+function read ( mw, req, res ) {
     var found = false;
-    new connection.Cursor()
+    mw.emit( "read:before", req, res );
+    new mw.conn.Cursor()
         .find({ id: req.params.id })
-        .on( "error", on_error( res ) )
+        .on( "error", on_error( mw, req, res ) )
         .once( "data", function ( obj ) {
             found = true;
-            res.send( obj );
+            res.data = obj;
+            mw.emit( "read:after", req, res );
+            res.end( JSON.stringify( res.data ) );
         })
         .on( "end", function () {
             if ( !found ) {
@@ -53,37 +65,44 @@ function read ( connection, req, res ) {
         });
 };
 
-function create ( connection, req, res ) {
-    var cursor = new connection.Cursor();
+function create ( mw, req, res ) {
+    var cursor = new mw.conn.Cursor();
+    mw.emit( "update:before", req, res );
     cursor.write( req.body );
     cursor
-        .on( "error", on_error( res ) )
+        .on( "error", on_error( mw, req, res ) )
         .on( "finish", function() {
-            res.send( req.body );
+            res.data = req.body;
+            mw.emit( "update:after", req, res );
+            res.end( JSON.stringify( res.data ) );
         })
         .end();
 };
 
-function update ( connection, req, res ) {
-    var cursor = new connection.Cursor();
+function update ( mw, req, res ) {
+    var cursor = new mw.conn.Cursor();
     req.body.id = req.params.id;
-    create( connection, req, res );
+    create( mw, req, res );
 };
 
-function remove ( connection, req, res ) {
-    var cursor = new connection.Cursor();
+function remove ( mw, req, res ) {
+    var cursor = new mw.conn.Cursor();
+    mw.emit( "remove:before", req, res );
     cursor.remove({ id: req.params.id });
     cursor
-        .on( "error", on_error( res ) )
+        .on( "error", on_error( mw, req, res ) )
         .on( "finish", function() {
-            res.send({});
+            res.data = {};
+            mw.emit( "remove:after", req, res );
+            res.end( JSON.stringify( res.data ) );
         })
         .end();
 }
 
-function on_error ( res ) {
+function on_error ( mw, req, res ) {
     return function ( err ) {
-        console.error( err );
+        res.error = err;
+        mw.emit( "error", req, res );
         res.writeHead( 500, "Internal Server Error" );
         res.end();
     }
