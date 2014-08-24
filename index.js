@@ -1,9 +1,7 @@
 var events = require( "events" );
 var url = require( "url" );
 module.exports = function ( connection ) {
-    var mw = new events.EventEmitter();
-    mw.conn = connection;
-    mw.handle = function ( req, res, next ) {
+    var mw = function ( req, res, next ) {
         var purl = url.parse( req.url, true );
         req.params || ( req.params = {} );
         req.query || ( req.query = purl.query );
@@ -26,6 +24,10 @@ module.exports = function ( connection ) {
 
         action( mw, req, res );
     }
+
+    mw.conn = connection;
+    events.EventsEmitter.call( mw );
+    mw.__proto__ = Object.create( events.EventsEmitter.prototype );
     return mw;
 }
 
