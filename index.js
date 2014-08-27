@@ -31,6 +31,34 @@ module.exports = function ( connection ) {
     return mw;
 }
 
+module.exports.session = function ( session, connection ) {
+    var store = new session.Store();
+    store.get = function ( sid, callback ) {
+        var found;
+        new connection.Cursor()
+            .find({ id: sid })
+            .on( "data", function ( obj ) { found = JSON.parse( obj.v ) })
+            .on( "end", function () { callback( null, found ) })
+            .on( "error", callback )
+    };
+    store.set = function ( sid, session, callback ) {
+        var obj = { id: sid, v: JSON.stringify( session ) }
+        var cursor = new connection.Cursor()
+            .on( "finish", callback )
+            .on( "error", callback );
+        cursor.write( obj );
+        cursor.end();
+    };
+    store.destroy = function ( sid, callback ) {
+        var cursor = new connection.Cursor()
+            .on( "finish", callback )
+            .on( "error", callback );
+        cursor.remove( { id: sid } );
+        cursor.end();
+    };
+    return store;
+}
+
 function search ( mw, req, res ) {
     var acc = [];
     mw.emit( "search:before", req, res );
