@@ -28,7 +28,12 @@ module.exports = function ( connection ) {
     mw.conn = connection;
     events.EventEmitter.call( mw );
     mw.__proto__ = Object.create( events.EventEmitter.prototype );
-    return mw;
+    
+    // at least one error handler should be bound to the `error` event in order to 
+    // avoid propagation of errors
+    return mw.on( "error", function ( req, res ) {
+        console.error( res.error );
+    });
 }
 
 module.exports.session = function ( session, connection ) {
