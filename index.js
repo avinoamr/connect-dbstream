@@ -67,6 +67,7 @@ module.exports.session = function ( session, connection ) {
 function search ( mw, req, res ) {
     var acc = [];
     mw.emit( "search:before", req, res );
+    if ( res._headerSent ) return;
     new mw.conn.Cursor()
         .find( req.query )
         .on( "error", on_error( mw, req, res ) )
@@ -83,6 +84,7 @@ function search ( mw, req, res ) {
 function read ( mw, req, res ) {
     var found = false;
     mw.emit( "read:before", req, res );
+    if ( res._headerSent ) return;
     new mw.conn.Cursor()
         .find({ id: req.params.id })
         .on( "error", on_error( mw, req, res ) )
@@ -103,6 +105,7 @@ function read ( mw, req, res ) {
 function create ( mw, req, res ) {
     var cursor = new mw.conn.Cursor();
     mw.emit( "update:before", req, res );
+    if ( res._headerSent ) return;
     cursor.write( req.body );
     cursor
         .on( "error", on_error( mw, req, res ) )
@@ -123,6 +126,7 @@ function update ( mw, req, res ) {
 function remove ( mw, req, res ) {
     var cursor = new mw.conn.Cursor();
     mw.emit( "remove:before", req, res );
+    if ( res._headerSent ) return;
     cursor.remove({ id: req.params.id });
     cursor
         .on( "error", on_error( mw, req, res ) )
