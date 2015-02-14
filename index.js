@@ -22,7 +22,11 @@ module.exports = function ( connection ) {
             return
         }
 
-        action( mw, req, res );
+        try {
+            action( mw, req, res );
+        } catch ( err ) {
+            on_error( mw, req, res )( err );
+        }
     }
 
     mw.conn = connection;
@@ -143,6 +147,7 @@ function on_error ( mw, req, res ) {
         res.error = err;
         mw.emit( "error", req, res );
         res.writeHead( 500, "Internal Server Error" );
+        res.write( res.error.toString() );
         res.end();
     }
 }
