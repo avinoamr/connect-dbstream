@@ -32,6 +32,28 @@ module.exports = function ( connection ) {
     mw.conn = connection;
     events.EventEmitter.call( mw );
     mw.__proto__ = Object.create( events.EventEmitter.prototype );
+
+
+    var before = {};
+    var after  = {};
+    mw.before = function ( name, fn ) {
+        before[ name ] = fn;
+        return mw;
+    }
+    mw.after = function ( name, fn ) {
+        after[ name ] = fn;
+        return mw;
+    }
+
+    mw.doBefore = function ( name, req, res, next ) {
+        if ( !before[ name ] ) return next();
+        before[ name ]( req, res, next );
+    }
+
+    mw.doAfter = function ( name, req, res, next ) {
+        if ( !after[ name ] ) return next();
+        after[ name ]( req, res, next );
+    }
     
     // at least one error handler should be bound to the `error` event in order to 
     // avoid propagation of errors
@@ -70,55 +92,58 @@ module.exports.session = function ( session, connection ) {
 
 function search ( mw, req, res ) {
     var acc = [];
-    mw.emit( "search:before", req, res );
-    if ( res._headerSent ) return;
-    new mw.conn.Cursor()
-        .find( req.query )
-        .on( "error", on_error( mw, req, res ) )
-        .on( "data" , function ( obj ) {
-            acc.push( obj );
-        })
-        .on( "end", function() {
-            res.data = acc;
-            mw.emit( "search:after", req, res );
-            res.end( JSON.stringify( res.data ) );
-        });
+    mw.doBefore( "search", req, res, function () {
+        new mw.conn.Cursor()
+            .find( req.query )
+            .on( "error", on_error( mw, req, res ) )
+            .on( "data" , function ( obj ) {
+                acc.push( obj );
+            })
+            .on( "end", function() {
+                res.data = acc;
+                mw.doAfter( "search", req, res, function () {
+                    res.end( JSON.stringify( res.data ) );
+                })
+            });
+    })
 };
 
 function read ( mw, req, res ) {
     var found = false;
-    mw.emit( "read:before", req, res );
-    if ( res._headerSent ) return;
-    new mw.conn.Cursor()
-        .find({ id: req.params.id })
-        .on( "error", on_error( mw, req, res ) )
-        .once( "data", function ( obj ) {
-            found = true;
-            res.data = obj;
-            mw.emit( "read:after", req, res );
-            res.end( JSON.stringify( res.data ) );
-        })
-        .on( "end", function () {
-            if ( !found ) {
-                res.writeHead( 404, "Not Found" );
-            }
-            res.end();
-        });
+    mw.doBefore( "read", req, res, function () {
+        new mw.conn.Cursor()
+            .find({ id: req.params.id })
+            .on( "error", on_error( mw, req, res ) )
+            .once( "data", function ( obj ) {
+                found = true;
+                res.data = obj;
+                mw.doAfter( "read", req, res, function () {
+                    res.end( JSON.stringify( res.data ) );
+                })
+            })
+            .on( "end", function () {
+                if ( !found ) {
+                    res.writeHead( 404, "Not Found" );
+                }
+                res.end();
+            });
+    })
 };
 
 function create ( mw, req, res ) {
-    var cursor = new mw.conn.Cursor();
-    mw.emit( "update:before", req, res );
-    if ( res._headerSent ) return;
-    cursor.write( req.body );
-    cursor
-        .on( "error", on_error( mw, req, res ) )
-        .on( "finish", function() {
-            res.data = req.body;
-            mw.emit( "update:after", req, res );
-            res.end( JSON.stringify( res.data ) );
-        })
-        .end();
+    mw.doBefore( "update", req, res, function () {
+        var cursor = new mw.conn.Cursor();
+        cursor.write( req.body );
+        cursor
+            .on( "error", on_error( mw, req, res ) )
+            .on( "finish", function() {
+                res.data = req.body;
+                mw.doAfter( "update", req, res, function () {
+                    res.end( JSON.stringify( res.data ) );
+                })
+            })
+            .end();
+    })
 };
 
 function update ( mw, req, res ) {
@@ -128,18 +153,19 @@ function update ( mw, req, res ) {
 };
 
 function remove ( mw, req, res ) {
-    var cursor = new mw.conn.Cursor();
-    mw.emit( "remove:before", req, res );
-    if ( res._headerSent ) return;
-    cursor.remove({ id: req.params.id });
-    cursor
-        .on( "error", on_error( mw, req, res ) )
-        .on( "finish", function() {
-            res.data = {};
-            mw.emit( "remove:after", req, res );
-            res.end( JSON.stringify( res.data ) );
-        })
-        .end();
+    mw.doBefore( "remove", req, res, function () {
+        var cursor = new mw.conn.Cursor();
+        cursor.remove({ id: req.params.id });
+        cursor
+            .on( "error", on_error( mw, req, res ) )
+            .on( "finish", function() {
+                res.data = {};
+                mw.doAfter( "remove", req, res, function () {
+                    res.end( JSON.stringify( res.data ) );
+                })
+            })
+            .end();
+    })
 }
 
 function on_error ( mw, req, res ) {
