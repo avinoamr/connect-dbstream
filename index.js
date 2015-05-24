@@ -1,4 +1,5 @@
 var events = require( "events" );
+var extend = require( "extend" );
 var url = require( "url" );
 module.exports = function ( connection ) {
     var mw = function ( req, res, next ) {
@@ -11,7 +12,7 @@ module.exports = function ( connection ) {
             ( purl.pathname == "/" && req.method == "POST" ) ? update :
             ( req.params.id && req.method == "GET" )         ? read :
             ( req.params.id && req.method == "PUT" )         ? update :
-            // ( req.params.id && req.method == "PATCH" )       ? patch  :
+            ( req.params.id && req.method == "PATCH" )       ? patch  :
             ( req.params.id && req.method == "DELETE" )      ? remove : null;
 
         if ( !action ) {
@@ -122,9 +123,8 @@ function read ( mw, req, res ) {
                 })
             })
             .on( "end", function () {
-                if ( !found ) {
-                    res.writeHead( 404, "Not Found" );
-                }
+                if ( found ) return;
+                res.writeHead( 404, "Not Found" );
                 res.end();
             });
     })
@@ -151,6 +151,32 @@ function update ( mw, req, res ) {
     req.body.id = req.params.id;
     create( mw, req, res );
 };
+
+function patch ( mw, req, res ) {
+    var found = false;
+    var cursor = new mw.conn.Cursor()
+        .find({ id: req.params.id })
+        .on( "error", on_error( mw, req, res ) )
+        .once( "data", function ( obj ) {
+            found = true;
+            res.data = extend( obj, req.body );
+            mw.doBefore( "patch", req, res, function () {
+                cursor.write( res.data )
+                .on( "finish", function () {
+                    mw.doAfter( "patch", req, res, function () {
+                        res.end( JSON.stringify( res.data ) );
+                    })
+                })
+                .end();
+            })
+        })
+        .on( "end", function () {
+            if ( found ) return;
+            res.writeHead( 404, "Not Found" );
+            res.end();
+        })
+
+}
 
 function remove ( mw, req, res ) {
     mw.doBefore( "remove", req, res, function () {
