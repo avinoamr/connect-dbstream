@@ -161,13 +161,12 @@ function patch ( mw, req, res ) {
             found = true;
             res.data = extend( obj, req.body );
             mw.doBefore( "patch", req, res, function () {
-                cursor.write( res.data )
-                .on( "finish", function () {
+                cursor.on( "finish", function () {
                     mw.doAfter( "patch", req, res, function () {
                         res.end( JSON.stringify( res.data ) );
                     })
                 })
-                .end();
+                .end( res.data );
             })
         })
         .on( "end", function () {

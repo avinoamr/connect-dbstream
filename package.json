@@ -1,6 +1,6 @@
 {
   "name": "connect-dbstream",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A connect middleware for creating a RESTful interface to a dbstream-compatible connection",
   "main": "index.js",
   "scripts": {
