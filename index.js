@@ -94,8 +94,11 @@ module.exports.session = function ( session, connection ) {
 function search ( mw, req, res ) {
     var acc = [];
     mw.doBefore( "search", req, res, function () {
+        var limit = req.query[ "$limit" ];
+        delete req.query[ "$limit" ];
         new mw.conn.Cursor()
             .find( req.query )
+            .limit( limit )
             .on( "error", on_error( mw, req, res ) )
             .on( "data" , function ( obj ) {
                 acc.push( obj );
