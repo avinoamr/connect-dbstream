@@ -113,6 +113,10 @@ function search ( mw, req, res ) {
 
         var cursor = new mw.conn.Cursor().find( req.query );
 
+        if ( skip ) {
+            cusror.skip ( skip )
+        }
+
         if ( limit ) {
             cursor.limit( limit );
         }
