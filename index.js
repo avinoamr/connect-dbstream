@@ -94,11 +94,34 @@ module.exports.session = function ( session, connection ) {
 function search ( mw, req, res ) {
     var acc = [];
     mw.doBefore( "search", req, res, function () {
+
+        // skip
+        var skip = req.query[ "$skip" ];
+        delete req.query[ "$skip" ];
+
+        // limit
         var limit = req.query[ "$limit" ];
         delete req.query[ "$limit" ];
-        new mw.conn.Cursor()
-            .find( req.query )
-            .limit( limit )
+
+        // sort
+        var sort = req.query[ "$sort" ], dir = 1;
+        if ( sort[ 0 ] == "-" ) {
+            sort = sort.substr( 1 );
+            dir = -1;
+        }
+        delete req.query[ "$sort" ];
+
+        var cursor = new mw.conn.Cursor().find( req.query );
+
+        if ( limit ) {
+            cursor.limit( limit );
+        }
+
+        if ( sort ) {
+            cursor.sort( sort, dir );
+        }
+        
+        cursor
             .on( "error", on_error( mw, req, res ) )
             .on( "data" , function ( obj ) {
                 acc.push( obj );
