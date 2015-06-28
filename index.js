@@ -105,7 +105,7 @@ function search ( mw, req, res ) {
 
         // sort
         var sort = req.query[ "$sort" ], dir = 1;
-        if ( sort[ 0 ] == "-" ) {
+        if ( sort && sort[ 0 ] == "-" ) {
             sort = sort.substr( 1 );
             dir = -1;
         }
