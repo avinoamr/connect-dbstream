@@ -9,7 +9,7 @@ module.exports = function ( connection ) {
         req.params.id = purl.pathname.substr( 1 ).trim();
         var action =
             ( purl.pathname == "/" && req.method == "GET" )  ? search :
-            ( purl.pathname == "/" && req.method == "POST" ) ? update :
+            ( purl.pathname == "/" && req.method == "POST" ) ? create :
             ( req.params.id && req.method == "GET" )         ? read :
             ( req.params.id && req.method == "PUT" )         ? update :
             ( req.params.id && req.method == "PATCH" )       ? patch  :
@@ -177,8 +177,9 @@ function create ( mw, req, res ) {
 };
 
 function update ( mw, req, res ) {
-    var cursor = new mw.conn.Cursor();
-    req.body.id = req.params.id;
+    if ( req.params.id ) {
+        req.body.id = req.params.id;
+    }
     create( mw, req, res );
 };
 
