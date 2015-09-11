@@ -48,12 +48,18 @@ module.exports = function ( connection ) {
 
     mw.doBefore = function ( name, req, res, next ) {
         if ( !before[ name ] ) return next();
-        before[ name ]( req, res, next );
+        before[ name ]( req, res, function ( err ) {
+            if ( err ) return on_error( mw, req, res )( err );
+            next();
+        });
     }
 
     mw.doAfter = function ( name, req, res, next ) {
         if ( !after[ name ] ) return next();
-        after[ name ]( req, res, next );
+        after[ name ]( req, res, function ( err ) {
+            if ( err ) return on_error( mw, req, res )( err );
+            next();
+        });
     }
     
     // at least one error handler should be bound to the `error` event in order to 
