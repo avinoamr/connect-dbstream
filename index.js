@@ -196,14 +196,15 @@ function patch ( mw, req, res ) {
         .on( "error", on_error( mw, req, res ) )
         .once( "data", function ( obj ) {
             found = true;
-            res.data = extend( obj, req.body );
-            mw.doBefore( "patch", req, res, function () {
+            req.body = extend( obj, req.body );
+            mw.doBefore( "update", req, res, function () {
                 cursor.on( "finish", function () {
-                    mw.doAfter( "patch", req, res, function () {
+                    res.data = req.body;
+                    mw.doAfter( "update", req, res, function () {
                         res.end( JSON.stringify( res.data ) );
                     })
                 })
-                .end( res.data );
+                .end( req.body );
             })
         })
         .on( "end", function () {
