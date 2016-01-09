@@ -37,33 +37,51 @@ module.exports = function ( connection ) {
 
     var before = {};
     var after  = {};
+    
     mw.before = function ( name, fn ) {
-        before[ name ] = fn;
+        if ( !before[ name ] ) {
+            before[ name ] = [];
+        }
+        before[ name ].push( fn );
         return mw;
     }
+
     mw.after = function ( name, fn ) {
-        after[ name ] = fn;
+        if ( !after[ name ] ) {
+            after[ name ] = [];
+        }
+        after[ name ].push( fn );
         return mw;
     }
 
     mw.doBefore = function ( name, req, res, next ) {
-        if ( !before[ name ] ) return next();
-        before[ name ]( req, res, function ( err ) {
-            if ( err ) return on_error( mw, req, res )( err );
-            next();
-        });
+        walk( before[ name ], req, res, next );
     }
 
     mw.doAfter = function ( name, req, res, next ) {
-        if ( !after[ name ] ) return next();
-        after[ name ]( req, res, function ( err ) {
-            if ( err ) return on_error( mw, req, res )( err );
-            next();
-        });
+        walk( after[ name ], req, res, next );
+    }
+
+    // invoke each handler in order
+    function walk( handlers, req, res, done ) {
+        if ( !handlers || !handlers.length ) {
+            done();
+            return
+        }
+
+        var next = handlers[ 0 ];
+        var tail = handlers.slice( 1 );
+        next( req, res, function ( err ) {
+            if ( err ) {
+                return on_error( mw, req, res )( err );
+            }
+
+            walk( tail, req, res, done );
+        })
     }
     
-    // at least one error handler should be bound to the `error` event in order to 
-    // avoid propagation of errors
+    // at least one error handler should be bound to the `error` event in order
+    // to avoid propagation of errors
     return mw.on( "error", function ( req, res ) {
         console.error( res.error );
     });
