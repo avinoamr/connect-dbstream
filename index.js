@@ -226,9 +226,9 @@ function patch ( mw, req, res ) {
             })
         })
         .on( "end", function () {
-            if ( found ) return;
-            res.writeHead( 404, "Not Found" );
-            res.end();
+            if ( !found ) {
+                this.emit( 'data', { id: req.params.id });
+            }
         })
 
 }
