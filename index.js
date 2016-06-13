@@ -138,7 +138,7 @@ function search ( mw, req, res ) {
         var cursor = new mw.conn.Cursor().find( req.query );
 
         if ( skip ) {
-            cusror.skip ( skip )
+            cursor.skip ( skip )
         }
 
         if ( limit ) {
